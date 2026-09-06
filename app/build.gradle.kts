@@ -51,4 +51,13 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Retrofit para peticiones HTTP a Fake Store API
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    // Almacenamiento seguro nativo (EncryptedSharedPreferences)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // ViewModels y ciclo de vida para Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 }
