@@ -4,7 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ProductApiService {
@@ -17,9 +21,20 @@ interface ProductApiService {
     @GET("products/category/{category}")
     suspend fun getProductsByCategory(@Path("category") category: String): List<ProductCatalogDto>
 
-    // US05: Obtención detallada por ID
     @GET("products/{id}")
     suspend fun getProductById(@Path("id") id: Int): ProductCatalogDto
+
+    @POST("products")
+    suspend fun addProduct(@Body product: CreateProductRequestDto): ProductCatalogDto
+
+    @PUT("products/{id}")
+    suspend fun updateProduct(
+        @Path("id") id: Int,
+        @Body product: CreateProductRequestDto
+    ): ProductCatalogDto
+
+    @DELETE("products/{id}")
+    suspend fun deleteProduct(@Path("id") id: Int): ProductCatalogDto
 }
 
 class ProductRepository {
@@ -59,11 +74,37 @@ class ProductRepository {
         }
     }
 
-    // US05: Consulta individual con mapeo a DTO completo
     suspend fun fetchProductDetail(productId: Int): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
         try {
             val dto = api.getProductById(productId)
             Result.success(dto)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createProduct(product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val created = api.addProduct(product)
+            Result.success(created)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateProduct(id: Int, product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val updated = api.updateProduct(id, product)
+            Result.success(updated)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteProduct(productId: Int): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val deleted = api.deleteProduct(productId)
+            Result.success(deleted)
         } catch (e: Exception) {
             Result.failure(e)
         }

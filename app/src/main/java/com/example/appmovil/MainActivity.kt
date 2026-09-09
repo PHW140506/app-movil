@@ -120,14 +120,16 @@ class MainActivity : ComponentActivity() {
                                                 username = currentUsername,
                                                 role = currentRole,
                                                 onLogoutClick = performLogout,
-                                                onProductClick = { id -> selectedProductId = id }
+                                                onProductClick = { productId ->
+                                                    selectedProductId = productId
+                                                }
                                             )
                                         }
 
-                                        val isAuthorized = currentRole.equals("Auditor", ignoreCase = true) ||
-                                                currentRole.equals("Administrador", ignoreCase = true)
+                                        val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
+                                                currentRole.equals("Auditor", ignoreCase = true)
 
-                                        if (isAuthorized) {
+                                        if (isAdminOrAuditor) {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
