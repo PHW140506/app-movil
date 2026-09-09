@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -26,12 +27,14 @@ interface ProductApiService {
     @POST("products")
     suspend fun addProduct(@Body product: CreateProductRequestDto): ProductCatalogDto
 
-    // Endpoint PUT para US07
     @PUT("products/{id}")
     suspend fun updateProduct(
         @Path("id") id: Int,
         @Body product: CreateProductRequestDto
     ): ProductCatalogDto
+
+    @DELETE("products/{id}")
+    suspend fun deleteProduct(@Path("id") id: Int): ProductCatalogDto
 }
 
 class ProductRepository {
@@ -89,11 +92,19 @@ class ProductRepository {
         }
     }
 
-    // Función suspendida requerida por EditProductViewModel (US07)
     suspend fun updateProduct(id: Int, product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
         try {
             val updated = api.updateProduct(id, product)
             Result.success(updated)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteProduct(productId: Int): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val deleted = api.deleteProduct(productId)
+            Result.success(deleted)
         } catch (e: Exception) {
             Result.failure(e)
         }
