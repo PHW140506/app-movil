@@ -6,17 +6,23 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.appmovil.data.SessionManager
+import com.example.appmovil.ui.screens.AuditCartsScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
+import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
 import kotlinx.coroutines.launch
 
@@ -41,31 +47,75 @@ class MainActivity : ComponentActivity() {
                 var currentRole by remember {
                     mutableStateOf(if (isLoggedIn) sessionManager.getUserRole().name else "")
                 }
+                var showAuditScreen by remember { mutableStateOf(false) }
 
-                // US02 - Escenario 2: Bloqueo de retroceso a vistas protegidas
-                // Si el usuario ya está en Login (no logueado) y da Atrás, la app se cierra.
-                // Si está en HomeScreen y da Atrás, también se cierra para evitar regresar a Login sin cerrar sesión.
+                val performLogout: () -> Unit = {
+                    lifecycleScope.launch {
+                        sessionManager.clearSession()
+                        loginViewModel.resetState()
+                        currentUsername = ""
+                        currentRole = ""
+                        showAuditScreen = false
+                        isLoggedIn = false
+                    }
+                }
+
+                // Manejo seguro del botón atrás de Android
                 BackHandler(enabled = true) {
-                    finish()
+                    if (showAuditScreen) {
+                        showAuditScreen = false // Si está en auditoría, regresa al HomeScreen
+                    } else {
+                        finish() // Si está en el Home o Login, cierra la aplicación
+                    }
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
-                            HomeScreen(
-                                username = currentUsername,
-                                role = currentRole,
-                                onLogoutClick = {
-                                    // US02 - Escenarios 1 y 3: Cierre de sesión y limpieza profunda
-                                    lifecycleScope.launch {
-                                        sessionManager.clearSession()
-                                        loginViewModel.resetState()
-                                        currentUsername = ""
-                                        currentRole = ""
-                                        isLoggedIn = false
+                            if (showAuditScreen) {
+                                val auditViewModel = remember(currentRole) {
+                                    AuditCartsViewModel(userRole = currentRole)
+                                }
+                                AuditCartsScreen(
+                                    viewModel = auditViewModel,
+                                    onBackClick = { showAuditScreen = false },
+                                    onLogoutClick = performLogout
+                                )
+                            } else {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    // Vista principal existente (con su botón de logout habitual)
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        HomeScreen(
+                                            username = currentUsername,
+                                            role = currentRole,
+                                            onLogoutClick = performLogout
+                                        )
+                                    }
+
+                                    // Criterio de aceptación 2: Bloqueo de ruta para perfiles no autorizados
+                                    val isAuthorized = currentRole.equals("Auditor", ignoreCase = true) ||
+                                            currentRole.equals("Administrador", ignoreCase = true)
+
+                                    if (isAuthorized) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Button(
+                                                onClick = { showAuditScreen = true },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.primary
+                                                )
+                                            ) {
+                                                Text("Ver Histórico Global de Carritos (US12)")
+                                            }
+                                        }
                                     }
                                 }
-                            )
+                            }
                         } else {
                             LoginScreen(
                                 viewModel = loginViewModel,
@@ -73,6 +123,7 @@ class MainActivity : ComponentActivity() {
                                     currentUsername = user
                                     currentRole = role
                                     isLoggedIn = true
+                                    showAuditScreen = false
                                 }
                             )
                         }
