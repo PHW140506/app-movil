@@ -19,13 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.appmovil.data.SessionManager
 import com.example.appmovil.ui.screens.AuditCartsScreen
-import com.example.appmovil.ui.screens.DeleteProductScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
+import com.example.appmovil.ui.screens.ProductDetailCartScreen
 import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
+import com.example.appmovil.ui.viewmodels.AddToCartViewModel
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
-import com.example.appmovil.ui.viewmodels.DeleteProductViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
-                var deletingProductId by remember { mutableStateOf<Int?>(null) }
+                var showCartScreen by remember { mutableStateOf(false) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -63,14 +63,14 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
-                        deletingProductId = null
+                        showCartScreen = false
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
-                        deletingProductId != null -> deletingProductId = null
+                        showCartScreen -> showCartScreen = false
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -81,15 +81,13 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
-                                deletingProductId != null -> {
-                                    val deleteViewModel = remember(currentRole) {
-                                        DeleteProductViewModel(userRole = currentRole)
+                                showCartScreen -> {
+                                    val cartViewModel = remember(currentRole) {
+                                        AddToCartViewModel(userRole = currentRole)
                                     }
-                                    DeleteProductScreen(
-                                        productId = deletingProductId!!,
-                                        viewModel = deleteViewModel,
-                                        onBack = { deletingProductId = null },
-                                        onDeleteSuccess = { deletingProductId = null }
+                                    ProductDetailCartScreen(
+                                        viewModel = cartViewModel,
+                                        onBack = { showCartScreen = false }
                                     )
                                 }
                                 showAuditScreen -> {
@@ -122,32 +120,31 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
-                                        val isAdmin = currentRole.equals("Administrador", ignoreCase = true)
-                                        val isAuditorOrAdmin = isAdmin || currentRole.equals("Auditor", ignoreCase = true)
-
-                                        if (isAuditorOrAdmin) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp),
-                                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            // Botón accesible para probar el flujo de carrito
+                                            Button(
+                                                onClick = { showCartScreen = true },
+                                                modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                // Escenario 3: Botón para eliminar exclusivo de Administrador
-                                                if (isAdmin) {
-                                                    Button(
-                                                        onClick = { deletingProductId = 1 }, // Producto #1 para pruebas
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        colors = ButtonDefaults.buttonColors(
-                                                            containerColor = MaterialTheme.colorScheme.error
-                                                        )
-                                                    ) {
-                                                        Text("Eliminar Producto #1 (US08)")
-                                                    }
-                                                }
+                                                Text("Añadir al Carrito Personal (US09)")
+                                            }
+
+                                            val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
+                                                    currentRole.equals("Auditor", ignoreCase = true)
+
+                                            if (isAdminOrAuditor) {
                                                 Button(
                                                     onClick = { showAuditScreen = true },
-                                                    modifier = Modifier.fillMaxWidth()
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.secondary
+                                                    )
                                                 ) {
                                                     Text("Ver Histórico de Carritos (US12)")
                                                 }
@@ -155,7 +152,7 @@ class MainActivity : ComponentActivity() {
                                                     onClick = { showUsersScreen = true },
                                                     modifier = Modifier.fillMaxWidth(),
                                                     colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MaterialTheme.colorScheme.secondary
+                                                        containerColor = MaterialTheme.colorScheme.tertiary
                                                     )
                                                 ) {
                                                     Text("Listar Directorio de Usuarios (US11)")
@@ -174,7 +171,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
-                                    deletingProductId = null
+                                    showCartScreen = false
                                 }
                             )
                         }
