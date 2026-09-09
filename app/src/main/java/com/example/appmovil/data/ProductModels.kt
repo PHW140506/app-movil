@@ -18,7 +18,6 @@ data class ProductCatalogItem(
     val imageUrl: String
 )
 
-// US06: Payload para el endpoint POST /products
 data class CreateProductRequestDto(
     @SerializedName("title") val title: String,
     @SerializedName("price") val price: Double,

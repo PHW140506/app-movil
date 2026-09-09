@@ -131,7 +131,6 @@ class MainActivity : ComponentActivity() {
                                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
-                                                // Escenario 2 / Regla de negocio US06: Botón exclusivo para Administrador
                                                 if (isAdmin) {
                                                     Button(
                                                         onClick = { showAddProductScreen = true },

@@ -7,6 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ProductApiService {
@@ -22,9 +23,15 @@ interface ProductApiService {
     @GET("products/{id}")
     suspend fun getProductById(@Path("id") id: Int): ProductCatalogDto
 
-    // US06: Creación de producto
     @POST("products")
     suspend fun addProduct(@Body product: CreateProductRequestDto): ProductCatalogDto
+
+    // Endpoint PUT para US07
+    @PUT("products/{id}")
+    suspend fun updateProduct(
+        @Path("id") id: Int,
+        @Body product: CreateProductRequestDto
+    ): ProductCatalogDto
 }
 
 class ProductRepository {
@@ -73,11 +80,20 @@ class ProductRepository {
         }
     }
 
-    // US06: Envío del producto a la API
     suspend fun createProduct(product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
         try {
             val created = api.addProduct(product)
             Result.success(created)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Función suspendida requerida por EditProductViewModel (US07)
+    suspend fun updateProduct(id: Int, product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val updated = api.updateProduct(id, product)
+            Result.success(updated)
         } catch (e: Exception) {
             Result.failure(e)
         }
