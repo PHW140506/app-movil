@@ -17,3 +17,11 @@ data class ProductCatalogItem(
     val price: Double,
     val imageUrl: String
 )
+
+data class CreateProductRequestDto(
+    @SerializedName("title") val title: String,
+    @SerializedName("price") val price: Double,
+    @SerializedName("description") val description: String,
+    @SerializedName("image") val image: String,
+    @SerializedName("category") val category: String
+)
