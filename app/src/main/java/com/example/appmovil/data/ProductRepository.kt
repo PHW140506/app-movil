@@ -26,7 +26,7 @@ interface ProductApiService {
     @POST("products")
     suspend fun addProduct(@Body product: CreateProductRequestDto): ProductCatalogDto
 
-    // US07: Actualización de producto por ID
+    // Endpoint PUT para US07
     @PUT("products/{id}")
     suspend fun updateProduct(
         @Path("id") id: Int,
@@ -89,7 +89,7 @@ class ProductRepository {
         }
     }
 
-    // US07: Consumo PUT /products/{id}
+    // Función suspendida requerida por EditProductViewModel (US07)
     suspend fun updateProduct(id: Int, product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
         try {
             val updated = api.updateProduct(id, product)

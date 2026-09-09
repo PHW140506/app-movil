@@ -18,14 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.appmovil.data.SessionManager
+import com.example.appmovil.ui.screens.AddProductScreen
 import com.example.appmovil.ui.screens.AuditCartsScreen
-import com.example.appmovil.ui.screens.EditProductScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
 import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
+import com.example.appmovil.ui.viewmodels.AddProductViewModel
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
-import com.example.appmovil.ui.viewmodels.EditProductViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
-                var editingProductId by remember { mutableStateOf<Int?>(null) }
+                var showAddProductScreen by remember { mutableStateOf(false) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -63,14 +63,14 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
-                        editingProductId = null
+                        showAddProductScreen = false
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
-                        editingProductId != null -> editingProductId = null
+                        showAddProductScreen -> showAddProductScreen = false
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -81,19 +81,13 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
-                                editingProductId != null -> {
-                                    val editViewModel = remember(editingProductId, currentRole) {
-                                        EditProductViewModel(
-                                            productId = editingProductId!!,
-                                            userRole = currentRole
-                                        )
+                                showAddProductScreen -> {
+                                    val addProductViewModel = remember(currentRole) {
+                                        AddProductViewModel(userRole = currentRole)
                                     }
-                                    EditProductScreen(
-                                        viewModel = editViewModel,
-                                        onBack = { editingProductId = null },
-                                        onUpdateSuccess = {
-                                            editingProductId = null
-                                        }
+                                    AddProductScreen(
+                                        viewModel = addProductViewModel,
+                                        onBack = { showAddProductScreen = false }
                                     )
                                 }
                                 showAuditScreen -> {
@@ -139,13 +133,13 @@ class MainActivity : ComponentActivity() {
                                             ) {
                                                 if (isAdmin) {
                                                     Button(
-                                                        onClick = { editingProductId = 1 },
+                                                        onClick = { showAddProductScreen = true },
                                                         modifier = Modifier.fillMaxWidth(),
                                                         colors = ButtonDefaults.buttonColors(
                                                             containerColor = MaterialTheme.colorScheme.tertiary
                                                         )
                                                     ) {
-                                                        Text("Editar Producto #1 (US07)")
+                                                        Text("Agregar Nuevo Producto (US06)")
                                                     }
                                                 }
                                                 Button(
@@ -177,7 +171,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
-                                    editingProductId = null
+                                    showAddProductScreen = false
                                 }
                             )
                         }
