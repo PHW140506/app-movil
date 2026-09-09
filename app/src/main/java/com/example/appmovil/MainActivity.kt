@@ -21,10 +21,12 @@ import com.example.appmovil.data.SessionManager
 import com.example.appmovil.ui.screens.AuditCartsScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
+import com.example.appmovil.ui.screens.ProductDetailScreen
 import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
+import com.example.appmovil.ui.viewmodels.ProductDetailViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
 
@@ -51,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
+                var selectedProductId by remember { mutableStateOf<Int?>(null) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -60,12 +63,14 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
+                        selectedProductId = null
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
+                        selectedProductId != null -> selectedProductId = null
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -76,6 +81,18 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
+                                selectedProductId != null -> {
+                                    val detailViewModel = remember(selectedProductId, currentRole) {
+                                        ProductDetailViewModel(
+                                            productId = selectedProductId!!,
+                                            userRole = currentRole
+                                        )
+                                    }
+                                    ProductDetailScreen(
+                                        viewModel = detailViewModel,
+                                        onBack = { selectedProductId = null }
+                                    )
+                                }
                                 showAuditScreen -> {
                                     val auditViewModel = remember(currentRole) {
                                         AuditCartsViewModel(userRole = currentRole)
@@ -102,7 +119,8 @@ class MainActivity : ComponentActivity() {
                                             HomeScreen(
                                                 username = currentUsername,
                                                 role = currentRole,
-                                                onLogoutClick = performLogout
+                                                onLogoutClick = performLogout,
+                                                onProductClick = { id -> selectedProductId = id }
                                             )
                                         }
 
@@ -146,6 +164,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
+                                    selectedProductId = null
                                 }
                             )
                         }

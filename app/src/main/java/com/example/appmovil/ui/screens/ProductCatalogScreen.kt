@@ -1,5 +1,6 @@
 package com.example.appmovil.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,7 +23,8 @@ import com.example.appmovil.ui.viewmodels.ProductCatalogViewModel
 
 @Composable
 fun ProductCatalogScreen(
-    viewModel: ProductCatalogViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ProductCatalogViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onProductClick: (Int) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -33,7 +35,8 @@ fun ProductCatalogScreen(
         categories = categories,
         selectedCategory = selectedCategory,
         onCategorySelect = { viewModel.selectCategory(it) },
-        onRetry = { viewModel.retryCurrentSelection() }
+        onRetry = { viewModel.retryCurrentSelection() },
+        onProductClick = onProductClick
     )
 }
 
@@ -43,10 +46,10 @@ fun ProductCatalogContent(
     categories: List<String>,
     selectedCategory: String?,
     onCategorySelect: (String?) -> Unit = {},
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    onProductClick: (Int) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // US04: Fila horizontal de selección de categorías mediante Chips deslizables
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,14 +57,12 @@ fun ProductCatalogContent(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Chip para la opción "Ver todos"
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = { onCategorySelect(null) },
                 label = { Text("Ver todos") }
             )
 
-            // Chips para cada una de las categorías dinámicas de la API
             categories.forEach { cat ->
                 FilterChip(
                     selected = selectedCategory == cat,
@@ -75,7 +76,6 @@ fun ProductCatalogContent(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-        // Contenedor dinámico del catálogo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -133,7 +133,10 @@ fun ProductCatalogContent(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(state.products) { product ->
-                                ProductGridCard(product = product)
+                                ProductGridCard(
+                                    product = product,
+                                    onClick = { onProductClick(product.id) }
+                                )
                             }
                         }
                     }
@@ -144,9 +147,14 @@ fun ProductCatalogContent(
 }
 
 @Composable
-fun ProductGridCard(product: ProductCatalogItem) {
+fun ProductGridCard(
+    product: ProductCatalogItem,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {

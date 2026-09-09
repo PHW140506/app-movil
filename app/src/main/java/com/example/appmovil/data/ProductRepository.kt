@@ -11,13 +11,15 @@ interface ProductApiService {
     @GET("products")
     suspend fun getProducts(): List<ProductCatalogDto>
 
-    // US04 - Escenario 1: Obtención de categorías disponibles
     @GET("products/categories")
     suspend fun getCategories(): List<String>
 
-    // US04 - Escenario 2: Productos filtrados por categoría
     @GET("products/category/{category}")
     suspend fun getProductsByCategory(@Path("category") category: String): List<ProductCatalogDto>
+
+    // US05: Obtención detallada por ID
+    @GET("products/{id}")
+    suspend fun getProductById(@Path("id") id: Int): ProductCatalogDto
 }
 
 class ProductRepository {
@@ -52,6 +54,16 @@ class ProductRepository {
         try {
             val dtoList = api.getProductsByCategory(category)
             Result.success(dtoList.mapToUiItems())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // US05: Consulta individual con mapeo a DTO completo
+    suspend fun fetchProductDetail(productId: Int): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val dto = api.getProductById(productId)
+            Result.success(dto)
         } catch (e: Exception) {
             Result.failure(e)
         }
