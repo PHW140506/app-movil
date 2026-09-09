@@ -21,9 +21,11 @@ import com.example.appmovil.data.SessionManager
 import com.example.appmovil.ui.screens.AuditCartsScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
+import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
+import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
                     mutableStateOf(if (isLoggedIn) sessionManager.getUserRole().name else "")
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
+                var showUsersScreen by remember { mutableStateOf(false) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -56,61 +59,79 @@ class MainActivity : ComponentActivity() {
                         currentUsername = ""
                         currentRole = ""
                         showAuditScreen = false
+                        showUsersScreen = false
                         isLoggedIn = false
                     }
                 }
 
-                // Manejo seguro del botón atrás de Android
                 BackHandler(enabled = true) {
-                    if (showAuditScreen) {
-                        showAuditScreen = false // Si está en auditoría, regresa al HomeScreen
-                    } else {
-                        finish() // Si está en el Home o Login, cierra la aplicación
+                    when {
+                        showAuditScreen -> showAuditScreen = false
+                        showUsersScreen -> showUsersScreen = false
+                        else -> finish()
                     }
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
-                            if (showAuditScreen) {
-                                val auditViewModel = remember(currentRole) {
-                                    AuditCartsViewModel(userRole = currentRole)
-                                }
-                                AuditCartsScreen(
-                                    viewModel = auditViewModel,
-                                    onBackClick = { showAuditScreen = false },
-                                    onLogoutClick = performLogout
-                                )
-                            } else {
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                    // Vista principal existente (con su botón de logout habitual)
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        HomeScreen(
-                                            username = currentUsername,
-                                            role = currentRole,
-                                            onLogoutClick = performLogout
-                                        )
+                            when {
+                                showAuditScreen -> {
+                                    val auditViewModel = remember(currentRole) {
+                                        AuditCartsViewModel(userRole = currentRole)
                                     }
+                                    AuditCartsScreen(
+                                        viewModel = auditViewModel,
+                                        onBackClick = { showAuditScreen = false },
+                                        onLogoutClick = performLogout
+                                    )
+                                }
+                                showUsersScreen -> {
+                                    val userViewModel = remember(currentRole) {
+                                        UserListViewModel(userRole = currentRole)
+                                    }
+                                    UserListScreen(
+                                        viewModel = userViewModel,
+                                        onBackClick = { showUsersScreen = false },
+                                        onLogoutClick = performLogout
+                                    )
+                                }
+                                else -> {
+                                    Column(modifier = Modifier.fillMaxSize()) {
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            HomeScreen(
+                                                username = currentUsername,
+                                                role = currentRole,
+                                                onLogoutClick = performLogout
+                                            )
+                                        }
 
-                                    // Criterio de aceptación 2: Bloqueo de ruta para perfiles no autorizados
-                                    val isAuthorized = currentRole.equals("Auditor", ignoreCase = true) ||
-                                            currentRole.equals("Administrador", ignoreCase = true)
+                                        val isAuthorized = currentRole.equals("Auditor", ignoreCase = true) ||
+                                                currentRole.equals("Administrador", ignoreCase = true)
 
-                                    if (isAuthorized) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Button(
-                                                onClick = { showAuditScreen = true },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.primary
-                                                )
+                                        if (isAuthorized) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
-                                                Text("Ver Histórico Global de Carritos (US12)")
+                                                Button(
+                                                    onClick = { showAuditScreen = true },
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text("Ver Histórico de Carritos (US12)")
+                                                }
+                                                Button(
+                                                    onClick = { showUsersScreen = true },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.secondary
+                                                    )
+                                                ) {
+                                                    Text("Listar Directorio de Usuarios (US11)")
+                                                }
                                             }
                                         }
                                     }
@@ -124,6 +145,7 @@ class MainActivity : ComponentActivity() {
                                     currentRole = role
                                     isLoggedIn = true
                                     showAuditScreen = false
+                                    showUsersScreen = false
                                 }
                             )
                         }
