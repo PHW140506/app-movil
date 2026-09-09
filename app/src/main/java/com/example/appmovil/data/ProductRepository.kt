@@ -4,20 +4,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ProductApiService {
     @GET("products")
     suspend fun getProducts(): List<ProductCatalogDto>
 
-    // US04 - Escenario 1: Obtención de categorías disponibles
     @GET("products/categories")
     suspend fun getCategories(): List<String>
 
-    // US04 - Escenario 2: Productos filtrados por categoría
     @GET("products/category/{category}")
     suspend fun getProductsByCategory(@Path("category") category: String): List<ProductCatalogDto>
+
+    @GET("products/{id}")
+    suspend fun getProductById(@Path("id") id: Int): ProductCatalogDto
+
+    // US06: Creación de producto
+    @POST("products")
+    suspend fun addProduct(@Body product: CreateProductRequestDto): ProductCatalogDto
 }
 
 class ProductRepository {
@@ -52,6 +59,25 @@ class ProductRepository {
         try {
             val dtoList = api.getProductsByCategory(category)
             Result.success(dtoList.mapToUiItems())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchProductDetail(productId: Int): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val dto = api.getProductById(productId)
+            Result.success(dto)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // US06: Envío del producto a la API
+    suspend fun createProduct(product: CreateProductRequestDto): Result<ProductCatalogDto> = withContext(Dispatchers.IO) {
+        try {
+            val created = api.addProduct(product)
+            Result.success(created)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -18,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.appmovil.data.SessionManager
+import com.example.appmovil.ui.screens.AddProductScreen
 import com.example.appmovil.ui.screens.AuditCartsScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
 import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
+import com.example.appmovil.ui.viewmodels.AddProductViewModel
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
@@ -51,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
+                var showAddProductScreen by remember { mutableStateOf(false) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -60,12 +63,14 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
+                        showAddProductScreen = false
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
+                        showAddProductScreen -> showAddProductScreen = false
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -76,6 +81,15 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
+                                showAddProductScreen -> {
+                                    val addProductViewModel = remember(currentRole) {
+                                        AddProductViewModel(userRole = currentRole)
+                                    }
+                                    AddProductScreen(
+                                        viewModel = addProductViewModel,
+                                        onBack = { showAddProductScreen = false }
+                                    )
+                                }
                                 showAuditScreen -> {
                                     val auditViewModel = remember(currentRole) {
                                         AuditCartsViewModel(userRole = currentRole)
@@ -106,10 +120,10 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
-                                        val isAuthorized = currentRole.equals("Auditor", ignoreCase = true) ||
-                                                currentRole.equals("Administrador", ignoreCase = true)
+                                        val isAdmin = currentRole.equals("Administrador", ignoreCase = true)
+                                        val isAuditorOrAdmin = isAdmin || currentRole.equals("Auditor", ignoreCase = true)
 
-                                        if (isAuthorized) {
+                                        if (isAuditorOrAdmin) {
                                             Column(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -117,6 +131,18 @@ class MainActivity : ComponentActivity() {
                                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
+                                                // Escenario 2 / Regla de negocio US06: Botón exclusivo para Administrador
+                                                if (isAdmin) {
+                                                    Button(
+                                                        onClick = { showAddProductScreen = true },
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = MaterialTheme.colorScheme.tertiary
+                                                        )
+                                                    ) {
+                                                        Text("Agregar Nuevo Producto (US06)")
+                                                    }
+                                                }
                                                 Button(
                                                     onClick = { showAuditScreen = true },
                                                     modifier = Modifier.fillMaxWidth()
@@ -146,6 +172,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
+                                    showAddProductScreen = false
                                 }
                             )
                         }
