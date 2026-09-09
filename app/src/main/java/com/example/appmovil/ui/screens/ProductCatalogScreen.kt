@@ -1,9 +1,11 @@
 package com.example.appmovil.ui.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,68 +25,117 @@ fun ProductCatalogScreen(
     viewModel: ProductCatalogViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+
     ProductCatalogContent(
         state = state,
-        onRetry = { viewModel.loadProducts() }
+        categories = categories,
+        selectedCategory = selectedCategory,
+        onCategorySelect = { viewModel.selectCategory(it) },
+        onRetry = { viewModel.retryCurrentSelection() }
     )
 }
 
 @Composable
 fun ProductCatalogContent(
     state: ProductCatalogUiState,
+    categories: List<String>,
+    selectedCategory: String?,
+    onCategorySelect: (String?) -> Unit = {},
     onRetry: () -> Unit = {}
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(8.dp)
-    ) {
-        when (state) {
-            is ProductCatalogUiState.Loading -> {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Cargando catálogo...", style = MaterialTheme.typography.bodyMedium)
-                }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // US04: Fila horizontal de selección de categorías mediante Chips deslizables
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Chip para la opción "Ver todos"
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = { onCategorySelect(null) },
+                label = { Text("Ver todos") }
+            )
+
+            // Chips para cada una de las categorías dinámicas de la API
+            categories.forEach { cat ->
+                FilterChip(
+                    selected = selectedCategory == cat,
+                    onClick = { onCategorySelect(cat) },
+                    label = {
+                        Text(cat.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() })
+                    }
+                )
             }
-            is ProductCatalogUiState.Error -> {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Error de conexión",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onRetry) {
-                        Text("Reintentar")
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Contenedor dinámico del catálogo
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp)
+        ) {
+            when (state) {
+                is ProductCatalogUiState.Loading -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Actualizando catálogo...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-            }
-            is ProductCatalogUiState.Success -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(state.products) { product ->
-                        ProductGridCard(product = product)
+                is ProductCatalogUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error al cargar",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onRetry) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+                is ProductCatalogUiState.Success -> {
+                    if (state.products.isEmpty()) {
+                        Text(
+                            text = "No hay productos en esta categoría.",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(state.products) { product ->
+                                ProductGridCard(product = product)
+                            }
+                        }
                     }
                 }
             }
@@ -128,13 +179,14 @@ fun ProductGridCard(product: ProductCatalogItem) {
 
 @Preview(showBackground = true)
 @Composable
-fun ProductCatalogScreenPreview() {
+fun ProductCatalogFilterPreview() {
     ProductCatalogContent(
         state = ProductCatalogUiState.Success(
             products = listOf(
-                ProductCatalogItem(1, "Fjallraven Backpack", 109.95, "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg"),
-                ProductCatalogItem(2, "Mens Casual Slim Fit", 22.3, "https://fakestoreapi.com/img/71-3HjGNDUL._AC_SY879._SX._UX._SY._UY_.jpg")
+                ProductCatalogItem(1, "Fjallraven Backpack", 109.95, "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg")
             )
-        )
+        ),
+        categories = listOf("electronics", "jewelery", "men's clothing", "women's clothing"),
+        selectedCategory = "electronics"
     )
 }
