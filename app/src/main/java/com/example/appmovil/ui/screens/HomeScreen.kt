@@ -12,10 +12,10 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     username: String,
     role: String,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onProductClick: (Int) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Cabecera superior
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -34,9 +34,8 @@ fun HomeScreen(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-        // Catálogo general de productos US03
         Box(modifier = Modifier.fillMaxSize()) {
-            ProductCatalogScreen()
+            ProductCatalogScreen(onProductClick = onProductClick)
         }
     }
 }

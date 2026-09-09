@@ -21,12 +21,12 @@ import com.example.appmovil.data.SessionManager
 import com.example.appmovil.ui.screens.AuditCartsScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
-import com.example.appmovil.ui.screens.ProductDetailCartScreen
+import com.example.appmovil.ui.screens.ProductDetailScreen
 import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
-import com.example.appmovil.ui.viewmodels.AddToCartViewModel
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
+import com.example.appmovil.ui.viewmodels.ProductDetailViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
 
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
-                var showCartScreen by remember { mutableStateOf(false) }
+                var selectedProductId by remember { mutableStateOf<Int?>(null) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -63,14 +63,14 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
-                        showCartScreen = false
+                        selectedProductId = null
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
-                        showCartScreen -> showCartScreen = false
+                        selectedProductId != null -> selectedProductId = null
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -81,13 +81,16 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
-                                showCartScreen -> {
-                                    val cartViewModel = remember(currentRole) {
-                                        AddToCartViewModel(userRole = currentRole)
+                                selectedProductId != null -> {
+                                    val detailViewModel = remember(selectedProductId, currentRole) {
+                                        ProductDetailViewModel(
+                                            productId = selectedProductId!!,
+                                            userRole = currentRole
+                                        )
                                     }
-                                    ProductDetailCartScreen(
-                                        viewModel = cartViewModel,
-                                        onBack = { showCartScreen = false }
+                                    ProductDetailScreen(
+                                        viewModel = detailViewModel,
+                                        onBack = { selectedProductId = null }
                                     )
                                 }
                                 showAuditScreen -> {
@@ -116,35 +119,27 @@ class MainActivity : ComponentActivity() {
                                             HomeScreen(
                                                 username = currentUsername,
                                                 role = currentRole,
-                                                onLogoutClick = performLogout
+                                                onLogoutClick = performLogout,
+                                                onProductClick = { productId ->
+                                                    selectedProductId = productId
+                                                }
                                             )
                                         }
 
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            // Botón accesible para probar el flujo de carrito
-                                            Button(
-                                                onClick = { showCartScreen = true },
-                                                modifier = Modifier.fillMaxWidth()
+                                        val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
+                                                currentRole.equals("Auditor", ignoreCase = true)
+
+                                        if (isAdminOrAuditor) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
-                                                Text("Añadir al Carrito Personal (US09)")
-                                            }
-
-                                            val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
-                                                    currentRole.equals("Auditor", ignoreCase = true)
-
-                                            if (isAdminOrAuditor) {
                                                 Button(
                                                     onClick = { showAuditScreen = true },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MaterialTheme.colorScheme.secondary
-                                                    )
+                                                    modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     Text("Ver Histórico de Carritos (US12)")
                                                 }
@@ -152,7 +147,7 @@ class MainActivity : ComponentActivity() {
                                                     onClick = { showUsersScreen = true },
                                                     modifier = Modifier.fillMaxWidth(),
                                                     colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MaterialTheme.colorScheme.tertiary
+                                                        containerColor = MaterialTheme.colorScheme.secondary
                                                     )
                                                 ) {
                                                     Text("Listar Directorio de Usuarios (US11)")
@@ -171,7 +166,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
-                                    showCartScreen = false
+                                    selectedProductId = null
                                 }
                             )
                         }
