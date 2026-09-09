@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.appmovil.data.SessionManager
 import com.example.appmovil.ui.screens.AuditCartsScreen
+import com.example.appmovil.ui.screens.CartManagementScreen
 import com.example.appmovil.ui.screens.HomeScreen
 import com.example.appmovil.ui.screens.LoginScreen
 import com.example.appmovil.ui.screens.ProductDetailCartScreen
@@ -26,6 +27,7 @@ import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
 import com.example.appmovil.ui.viewmodels.AddToCartViewModel
 import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
+import com.example.appmovil.ui.viewmodels.CartManagementViewModel
 import com.example.appmovil.ui.viewmodels.LoginViewModel
 import com.example.appmovil.ui.viewmodels.UserListViewModel
 import kotlinx.coroutines.launch
@@ -53,7 +55,8 @@ class MainActivity : ComponentActivity() {
                 }
                 var showAuditScreen by remember { mutableStateOf(false) }
                 var showUsersScreen by remember { mutableStateOf(false) }
-                var showCartScreen by remember { mutableStateOf(false) }
+                var showAddCartScreen by remember { mutableStateOf(false) }
+                var showCartManagementScreen by remember { mutableStateOf(false) }
 
                 val performLogout: () -> Unit = {
                     lifecycleScope.launch {
@@ -63,14 +66,16 @@ class MainActivity : ComponentActivity() {
                         currentRole = ""
                         showAuditScreen = false
                         showUsersScreen = false
-                        showCartScreen = false
+                        showAddCartScreen = false
+                        showCartManagementScreen = false
                         isLoggedIn = false
                     }
                 }
 
                 BackHandler(enabled = true) {
                     when {
-                        showCartScreen -> showCartScreen = false
+                        showCartManagementScreen -> showCartManagementScreen = false
+                        showAddCartScreen -> showAddCartScreen = false
                         showAuditScreen -> showAuditScreen = false
                         showUsersScreen -> showUsersScreen = false
                         else -> finish()
@@ -81,13 +86,20 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         if (isLoggedIn) {
                             when {
-                                showCartScreen -> {
+                                showCartManagementScreen -> {
+                                    val cartMgmtViewModel = remember { CartManagementViewModel() }
+                                    CartManagementScreen(
+                                        viewModel = cartMgmtViewModel,
+                                        onBack = { showCartManagementScreen = false }
+                                    )
+                                }
+                                showAddCartScreen -> {
                                     val cartViewModel = remember(currentRole) {
                                         AddToCartViewModel(userRole = currentRole)
                                     }
                                     ProductDetailCartScreen(
                                         viewModel = cartViewModel,
-                                        onBack = { showCartScreen = false }
+                                        onBack = { showAddCartScreen = false }
                                     )
                                 }
                                 showAuditScreen -> {
@@ -127,12 +139,22 @@ class MainActivity : ComponentActivity() {
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            // Botón accesible para probar el flujo de carrito
+                                            // Accesos del Cliente para US09 y US10
                                             Button(
-                                                onClick = { showCartScreen = true },
+                                                onClick = { showAddCartScreen = true },
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                Text("Añadir al Carrito Personal (US09)")
+                                                Text("Añadir al Carrito (US09)")
+                                            }
+
+                                            Button(
+                                                onClick = { showCartManagementScreen = true },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.secondary
+                                                )
+                                            ) {
+                                                Text("Ver / Gestionar Mi Carrito (US10)")
                                             }
 
                                             val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
@@ -143,7 +165,7 @@ class MainActivity : ComponentActivity() {
                                                     onClick = { showAuditScreen = true },
                                                     modifier = Modifier.fillMaxWidth(),
                                                     colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MaterialTheme.colorScheme.secondary
+                                                        containerColor = MaterialTheme.colorScheme.surfaceTint
                                                     )
                                                 ) {
                                                     Text("Ver Histórico de Carritos (US12)")
@@ -171,7 +193,8 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = true
                                     showAuditScreen = false
                                     showUsersScreen = false
-                                    showCartScreen = false
+                                    showAddCartScreen = false
+                                    showCartManagementScreen = false
                                 }
                             )
                         }
