@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
                                                     onClick = { currentRoute = AppRoute.MyCart },
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
-                                                    Text("Mi Carrito de Compras (US10)")
+                                                    Text("Mi Carrito de Compras (US09/US10)")
                                                 }
                                             }
 
@@ -169,7 +169,10 @@ class MainActivity : ComponentActivity() {
 
                                 is AppRoute.ProductDetail -> {
                                     val detailVm = remember(route.productId, currentRole) {
-                                        ProductDetailViewModel(route.productId, currentRole)
+                                        ProductDetailViewModel(
+                                            productId = route.productId,
+                                            userRole = currentRole
+                                        )
                                     }
                                     ProductDetailScreen(
                                         viewModel = detailVm,
