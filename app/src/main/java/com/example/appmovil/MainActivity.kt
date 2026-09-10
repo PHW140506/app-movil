@@ -176,7 +176,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                     ProductDetailScreen(
                                         viewModel = detailVm,
-                                        onBack = { currentRoute = AppRoute.Home }
+                                        onBack = { currentRoute = AppRoute.Home },
+                                        onNavigateToEdit = { id -> currentRoute = AppRoute.EditProduct(id) },
+                                        onNavigateToDelete = { id -> currentRoute = AppRoute.DeleteProduct(id) }
                                     )
                                 }
 

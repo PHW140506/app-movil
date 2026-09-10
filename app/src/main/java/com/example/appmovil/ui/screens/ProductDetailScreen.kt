@@ -18,7 +18,9 @@ import com.example.appmovil.ui.viewmodels.ProductDetailViewModel
 @Composable
 fun ProductDetailScreen(
     viewModel: ProductDetailViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToEdit: (Int) -> Unit = {},
+    onNavigateToDelete: (Int) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val cartMessage by viewModel.cartMessage.collectAsState()
@@ -37,6 +39,8 @@ fun ProductDetailScreen(
         isAuditor = viewModel.isAuditor,
         snackbarHostState = snackbarHostState,
         onAddToCart = { product -> viewModel.addToCart(product) },
+        onEditClick = onNavigateToEdit,
+        onDeleteClick = onNavigateToDelete,
         onBack = onBack
     )
 }
@@ -49,6 +53,8 @@ fun ProductDetailContent(
     isAuditor: Boolean,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onAddToCart: (ProductCatalogDto) -> Unit = {},
+    onEditClick: (Int) -> Unit = {},
+    onDeleteClick: (Int) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     Scaffold(
@@ -155,7 +161,6 @@ fun ProductDetailContent(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // US09: Agregar al carrito visible para Cliente y Administrador
                         if (!isAuditor) {
                             Button(
                                 onClick = { onAddToCart(product) },
@@ -166,27 +171,27 @@ fun ProductDetailContent(
                             Spacer(modifier = Modifier.height(12.dp))
                         }
 
-                        // US07 / US08: Acciones exclusivas de Administrador
+                        // US07 y US08: Botones de administración habilitados para navegar
                         if (canManage) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Button(
-                                    onClick = { /* Navegar a editar */ },
+                                    onClick = { onEditClick(product.id) },
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("Editar")
+                                    Text("Editar (US07)")
                                 }
 
                                 Button(
-                                    onClick = { /* Navegar a eliminar */ },
+                                    onClick = { onDeleteClick(product.id) },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error
                                     )
                                 ) {
-                                    Text("Eliminar")
+                                    Text("Eliminar (US08)")
                                 }
                             }
                         }
