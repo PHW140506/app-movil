@@ -2,46 +2,205 @@ package com.example.appmovil
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.example.appmovil.data.SessionManager
+import com.example.appmovil.ui.screens.AuditCartsScreen
+import com.example.appmovil.ui.screens.CartManagementScreen
+import com.example.appmovil.ui.screens.HomeScreen
+import com.example.appmovil.ui.screens.LoginScreen
+import com.example.appmovil.ui.screens.ProductDetailCartScreen
+import com.example.appmovil.ui.screens.UserListScreen
 import com.example.appmovil.ui.theme.AppMovilTheme
+import com.example.appmovil.ui.viewmodels.AddToCartViewModel
+import com.example.appmovil.ui.viewmodels.AuditCartsViewModel
+import com.example.appmovil.ui.viewmodels.CartManagementViewModel
+import com.example.appmovil.ui.viewmodels.LoginViewModel
+import com.example.appmovil.ui.viewmodels.UserListViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    private val loginViewModel: LoginViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val sessionManager = SessionManager(applicationContext)
+
         setContent {
             AppMovilTheme {
+                var isLoggedIn by remember {
+                    mutableStateOf(!sessionManager.getToken().isNullOrBlank())
+                }
+                var currentUsername by remember {
+                    mutableStateOf(if (isLoggedIn) sessionManager.getUsername() else "")
+                }
+                var currentRole by remember {
+                    mutableStateOf(if (isLoggedIn) sessionManager.getUserRole().name else "")
+                }
+                var showAuditScreen by remember { mutableStateOf(false) }
+                var showUsersScreen by remember { mutableStateOf(false) }
+                var showAddCartScreen by remember { mutableStateOf(false) }
+                var showCartManagementScreen by remember { mutableStateOf(false) }
+
+                val performLogout: () -> Unit = {
+                    lifecycleScope.launch {
+                        sessionManager.clearSession()
+                        loginViewModel.resetState()
+                        currentUsername = ""
+                        currentRole = ""
+                        showAuditScreen = false
+                        showUsersScreen = false
+                        showAddCartScreen = false
+                        showCartManagementScreen = false
+                        isLoggedIn = false
+                    }
+                }
+
+                BackHandler(enabled = true) {
+                    when {
+                        showCartManagementScreen -> showCartManagementScreen = false
+                        showAddCartScreen -> showAddCartScreen = false
+                        showAuditScreen -> showAuditScreen = false
+                        showUsersScreen -> showUsersScreen = false
+                        else -> finish()
+                    }
+                }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        if (isLoggedIn) {
+                            when {
+                                showCartManagementScreen -> {
+                                    val cartMgmtViewModel = remember { CartManagementViewModel() }
+                                    CartManagementScreen(
+                                        viewModel = cartMgmtViewModel,
+                                        onBack = { showCartManagementScreen = false }
+                                    )
+                                }
+                                showAddCartScreen -> {
+                                    val cartViewModel = remember(currentRole) {
+                                        AddToCartViewModel(userRole = currentRole)
+                                    }
+                                    ProductDetailCartScreen(
+                                        viewModel = cartViewModel,
+                                        onBack = { showAddCartScreen = false }
+                                    )
+                                }
+                                showAuditScreen -> {
+                                    val auditViewModel = remember(currentRole) {
+                                        AuditCartsViewModel(userRole = currentRole)
+                                    }
+                                    AuditCartsScreen(
+                                        viewModel = auditViewModel,
+                                        onBackClick = { showAuditScreen = false },
+                                        onLogoutClick = performLogout
+                                    )
+                                }
+                                showUsersScreen -> {
+                                    val userViewModel = remember(currentRole) {
+                                        UserListViewModel(userRole = currentRole)
+                                    }
+                                    UserListScreen(
+                                        viewModel = userViewModel,
+                                        onBackClick = { showUsersScreen = false },
+                                        onLogoutClick = performLogout
+                                    )
+                                }
+                                else -> {
+                                    Column(modifier = Modifier.fillMaxSize()) {
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            HomeScreen(
+                                                username = currentUsername,
+                                                role = currentRole,
+                                                onLogoutClick = performLogout
+                                            )
+                                        }
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            // Accesos del Cliente para US09 y US10
+                                            Button(
+                                                onClick = { showAddCartScreen = true },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text("Añadir al Carrito (US09)")
+                                            }
+
+                                            Button(
+                                                onClick = { showCartManagementScreen = true },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.secondary
+                                                )
+                                            ) {
+                                                Text("Ver / Gestionar Mi Carrito (US10)")
+                                            }
+
+                                            val isAdminOrAuditor = currentRole.equals("Administrador", ignoreCase = true) ||
+                                                    currentRole.equals("Auditor", ignoreCase = true)
+
+                                            if (isAdminOrAuditor) {
+                                                Button(
+                                                    onClick = { showAuditScreen = true },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceTint
+                                                    )
+                                                ) {
+                                                    Text("Ver Histórico de Carritos (US12)")
+                                                }
+                                                Button(
+                                                    onClick = { showUsersScreen = true },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.tertiary
+                                                    )
+                                                ) {
+                                                    Text("Listar Directorio de Usuarios (US11)")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            LoginScreen(
+                                viewModel = loginViewModel,
+                                onLoginSuccess = { user, role ->
+                                    currentUsername = user
+                                    currentRole = role
+                                    isLoggedIn = true
+                                    showAuditScreen = false
+                                    showUsersScreen = false
+                                    showAddCartScreen = false
+                                    showCartManagementScreen = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composabled
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AppMovilTheme {
-        Greeting("Android")
     }
 }
