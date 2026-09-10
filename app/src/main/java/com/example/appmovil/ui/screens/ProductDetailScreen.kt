@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.appmovil.data.ProductCatalogDto
@@ -22,10 +21,22 @@ fun ProductDetailScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val cartMessage by viewModel.cartMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(cartMessage) {
+        cartMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearCartMessage()
+        }
+    }
 
     ProductDetailContent(
         state = state,
         canManage = viewModel.canManageProduct,
+        isAuditor = viewModel.isAuditor,
+        snackbarHostState = snackbarHostState,
+        onAddToCart = { product -> viewModel.addToCart(product) },
         onBack = onBack
     )
 }
@@ -35,9 +46,13 @@ fun ProductDetailScreen(
 fun ProductDetailContent(
     state: ProductDetailUiState,
     canManage: Boolean,
+    isAuditor: Boolean,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onAddToCart: (ProductCatalogDto) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Detalle del Producto") },
@@ -62,7 +77,6 @@ fun ProductDetailContent(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
-                // Escenario 3: Manejo de error con alerta y retorno automático
                 is ProductDetailUiState.Error -> {
                     AlertDialog(
                         onDismissRequest = onBack,
@@ -95,7 +109,6 @@ fun ProductDetailContent(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Categoría
                         Surface(
                             shape = MaterialTheme.shapes.small,
                             color = MaterialTheme.colorScheme.secondaryContainer
@@ -110,7 +123,6 @@ fun ProductDetailContent(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Título y Precio
                         Text(
                             text = product.title.orEmpty(),
                             fontWeight = FontWeight.Bold,
@@ -130,7 +142,6 @@ fun ProductDetailContent(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Descripción completa
                         Text(
                             text = "Descripción",
                             fontWeight = FontWeight.SemiBold,
@@ -139,27 +150,37 @@ fun ProductDetailContent(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = product.description.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                            style = MaterialTheme.typography.bodyMedium
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Regla de negocio / Escenario 2: Componentes de gestión EXCLUIDOS si no es Administrador
+                        // US09: Agregar al carrito visible para Cliente y Administrador
+                        if (!isAuditor) {
+                            Button(
+                                onClick = { onAddToCart(product) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Agregar al Carrito")
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // US07 / US08: Acciones exclusivas de Administrador
                         if (canManage) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Button(
-                                    onClick = { /* Acción futura de editar */ },
+                                    onClick = { /* Navegar a editar */ },
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text("Editar")
                                 }
 
                                 Button(
-                                    onClick = { /* Acción futura de eliminar */ },
+                                    onClick = { /* Navegar a eliminar */ },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error
@@ -174,22 +195,4 @@ fun ProductDetailContent(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProductDetailScreenPreview() {
-    ProductDetailContent(
-        state = ProductDetailUiState.Success(
-            ProductCatalogDto(
-                id = 1,
-                title = "Fjallraven Backpack",
-                price = 109.95,
-                description = "Your perfect pack for everyday use and walks in the forest.",
-                category = "men's clothing",
-                image = "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg"
-            )
-        ),
-        canManage = true
-    )
 }
